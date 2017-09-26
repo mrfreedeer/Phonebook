@@ -1,155 +1,74 @@
 import json
 import collections
 
-class Name(object):
-    def __init__(self, namedir = None,  pref = None, first = None, middle = None, surn = None, suff = None):
-        if namedir == None:
-            self._namedict = collections.OrderedDict()
-            self._namedict = {'prefix' : pref, 'firstname' : first, 'middlename' : middle, 'surname' : surn, 'suffix' : suff}
+class Contact(object):
+    def __init__(self):
+        self._info = collections.OrderedDict()
+    def add(self,user, field, parameter = None, value = None):
+        if not(user in self._info):
+            if isinstance(parameter, dict):
+                d = {field : parameter}
+                self._info[user] = d
+            else:
+                s = {parameter : value}
+                d = {field : s}
+                self._info[user] = d
         else:
-            self._namedict = namedir
-    def __str__(self):
-        return 'Prefijo: {}\nNombre: {}\nSegundo Nombre: {}\nApellidos: {}\nSufijo: {}'.format(self._namedict['prefix'],self._namedict['firstname'],self._namedict['middlename'],self._namedict['surname'],self._namedict['suffix'])
+            temp = collections.OrderedDict()
+            if isinstance(parameter,dict):
+                for x in self._info[user]:
+                    temp[x] = self._info[user][x]
+                temp[field] = parameter
+                self._info[user] = temp
+            else:
+                temp = collections.OrderedDict()
+                for x in self._info[user]:
+                    if x != field:
+                        temp[x] = self._info[user][x]
+                    else:
+                        p = {}
+                        for y in self._info[user][field]:
+                            p[y] = self._info[user][field][y]
+                        p[parameter] = value
+                        temp[field] = p
+                self._info[user] = temp
+    def surrender(self):
+        return self._info
     @property
     def cprint(self):
-        for x in self._namedict:
-            if self._namedict[x] != None:
-                print(x,self._namedict[x],)
-    def add(self, atribute, value = None):
-        l = ['prefix', 'firstname','middlename','surname','suffix']
-        if not isinstance(atribute,dict):
-            assert atribute in l
-            self._namedict[atribute] = value
-        else:
-            for x in atribute:
-                assert x in l
-                self._namedict[x] = atribute[x]
-    def surrender(self):
-        return self._namedict
-
-class Phones(object):
-    def __init__(self, type = None, phone = None):
-        if isinstance(type,dict):
-            self._phones = type
-        else:
-            self._phones = {type : phone}
-    def add(self, obj, phone = None):
-        if isinstance(obj,dict):
-            self._phones = obj
-        else:
-            self._phones[obj] = phone
-    @property
-    def cprint(self):
-        print("\nTelefonos:",)
-        for x in self._phones:
-            print(x," : ",self._phones[x])
-    def surrender(self):
-        return self._phones
-class Email(object):
-    def __init__(self,obj = None, email = None):
-        if isinstance(obj, dict):
-            self._emails = obj
-        else:
-            self._emails = {obj : email}
-    def add(self,obj, email = None):
-        if isinstance(obj, dict):
-            for x in obj:
-                self._emails[x] = obj[x]
-        else:
-            self._emails[obj] = email
-    def surrender(self):
-        return self._emails
-    @property
-    def cprint(self):
-        print("\nEmails: ",)
-        for x in self._emails:
-            print(x,":\t",self._emails[x])
+        for x in self._info:
+            print("Contacto: ", x,"\n")
+            for y in self._info[x]:
+                print("\n", y, ":\n")
+                for z in self._info[x][y]:
+                    print(z,":\t",self._info[x][y][z])
 
 class PhoneBook(object):
     def __init__(self):
-        self._contents = []
-        self._contacts = collections.OrderedDict()
-    def add(self,name, namedir, phone = None, emails = None, valuename = None, phonevalue = None, emailvalue = None):
-        temp = collections.OrderedDict()
-        if isinstance(namedir, Name):
-            temp[info] = namedir
-        elif isinstance(namedir, dict):
-            n = Name()
-            n.add(namedir)
-            temp['info'] = n
+        self._contacts = []
+    def add(self, user, field = None, parameter = None, value = None):
+        if isinstance(user, Contact):
+            self._contacts.append(user)
         else:
-            n = Name()
-            n.add(name,valuename)
-            temp = {'info' : n}
-
-        if isinstance(phone, Phones):
-            temp['phones'] = phone
-        elif isinstance(phone,dict):
-            m = Phones(phone)
-            temp['phones'] = m
-        else:
-            if phone is not None:
-                p = Phones(phone,phonevalue)
-                temp['phones'] = p
-
-        if isinstance(emails, Email):
-            temp['emails'] = emails
-        elif isinstance(emails,dict):
-            e = Email(emails)
-            temp['emails'] = e
-        else:
-            e = Email(emails,emailvalue)
-            temp['emails'] = e
-
-        self._contacts[name] = temp
-    def classify(self):
-        for x in self._contacts:
-            for y in self._contacts[x]:
-                if type(self._contacts[x][y]) not in self._contents:
-                    self._contents.append(type(self._contacts[x][y]))
-
-    def tag(self,type):
-        if type == Name:
-            return 'info'
-        elif type == Phones:
-            return 'phones'
-        else:
-            return 'emails'
-    def untag(self,tag):
-        if tag == 'info':
-            return Name
-        elif tag == 'phones':
-            return Phones
-        else:
-            return Email
-
+            c = Contact()
+            c.add(user,field,parameter,value)
     def tojson(self):
-        self.classify()
-        converted = {}
-        z = {}
+        temp = []
         for x in self._contacts:
-            for y in self._contents:
-                z[self.tag(y)] = self._contacts[x][self.tag(y)].surrender()
-            converted[x] = z
-        return converted
-    def fromjson(self, jsondict):
-        temp = {}
-        for x in jsondict:
-            for y in jsondict[x]:
-                k = jsondict[x][y]
-                i = self.untag(y)
-                temp[y] =i(k)
-            self._contacts[x] = temp
-
+            temp.append(x.surrender())
+        return temp
+    def fromjson(self, data):
+        for x in data:
+            for y in x:
+                c = Contact()
+                for z in x[y]:
+                    c.add(y,z,x[y][z])
+                self.add(c)
     @property
     def cprint(self):
-        first = True
         for x in self._contacts:
-            print("Contacto:\t", x, "\n")
-            #print (self._contacts[x]['info'])
-            for y in self._contacts[x]:
-                k = self.untag(y)
-                self._contacts[x][y].cprint
+            x.cprint
+            print("\n\n")
 
 
 def loadPbk():
@@ -164,26 +83,39 @@ def savePbk(p):
 
 
 def main():
-    load = False
-    write = True
-    if load:
-         p = loadPbk()
-         p.cprint
-    else:
-        s = Name()
-        random = {'firstname' : 'Juan', 'surname' : 'Ospina'}
+    load = True
+
+    if not load:
+        random = collections.OrderedDict()
+        random2 = collections.OrderedDict()
+        random = {'Nombre' : 'Juan', 'Apellidos' : 'Ospina'}
         random2 = {'Casa' : 3205093, 'Cel' : 3175114183}
         emails = {'Trabajo' : 'juanpablo.ospina@utp.edu.co', 'Casa' : 'juanpabloospina1998@gmail.com', 'Test' : 'juanpabloospina1998@hotmail.com'}
-        e = Email(emails)
-        s.add('firstname','Juan')
+        c = Contact()
+        c.add('Juan', 'Información', random)
+        c.add('Juan','Teléfonos',random2)
+        c.add('Juan','Teléfonos','Trabajo',3333330)
+        c.add('Juan','Emails',emails)
+
+        random3 = collections.OrderedDict()
+        random4 = collections.OrderedDict()
+        random5 = collections.OrderedDict()
+        random3 = {'Nombre' : 'Juan', 'Apellidos' : 'Zurita'}
+        random4 = {'Casa' : 30000001, 'Cel' : 3000114183}
+        random5 = {'Trabajo' : 'juanpabloospina1998@yahoo.com'}
+        o = Contact()
+        o.add('Juan','Infomación',random3)
+        o.add('Juan','Teléfonos',random4)
+        o.add('Juan','Emails',random5)
+
         p = PhoneBook()
-        print("\n\n->   ",p._contacts)
-        p.add('Juan',random, random2,e)
-
+        p.add(c)
+        p.add(o)
         p.cprint
-        if write:
-            savePbk(p)
+        savePbk(p)
 
-
+    else:
+        p = loadPbk()
+        p.cprint
 if __name__ == '__main__':
     main()
